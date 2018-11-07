@@ -41,7 +41,7 @@ channelsList.forEach(function(channel) {
    responseObject["channelCreation_"+channel] = JSON.stringify(step)
 });
 
-/** Create the device **/
+/** Create the stmicro device **/
 var params = {
         "id":"stmicro",
         "password" : "stmicro",
