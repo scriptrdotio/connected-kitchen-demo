@@ -111,7 +111,14 @@ var devicesList = [
         "password" : "demo",
         "name" : "demo@scriptr.io",
         "groups": ["scriptrio","editor"]
-    }
+    },
+    {
+        "id":"editor",
+        "password" : "demo",
+        "name" : "editor",
+        "groups": ["editor"]
+    } 
+   
 ];
 
 devicesList.forEach(function(params) {
