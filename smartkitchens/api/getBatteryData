@@ -1,0 +1,65 @@
+var document = require("document");
+var log = require("log");
+log.setLevel("INFO");
+var device = require("device");
+
+var getUser = device.get(request.user.id);
+var userGroups = getUser.result["groups"];
+userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [userGroups] : userGroups) :["scriptrio"];
+
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+if(typeof query == 'string'){
+  	try{
+    	query = JSON.parse(params);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+if(query.id== null){
+  	return "INVALID OR MISSING PARAMETER: missing id"
+}
+var filter = 'group = "' + userGroups[0] + '" and id = "' + query.id + '"';
+if(query.timeframe){
+  	if(query.timeframe.start){
+      	var date = new Date(query.timeframe.start);
+      	var start = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+    	filter += " and creationDate<date> > \"" + start + "\"";	  
+    }
+  	if(query.timeframe.end){
+      	var log = require("log");
+      	log.setLevel("INFO");
+      	var date = new Date(query.timeframe.end);
+      	log.info(date);
+      	date.setDate(date.getDate() + 1);
+      	log.info(date);
+      	var end = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+    	filter += " and creationDate<date> < \"" + end + "\"";	  
+    }
+  	
+}
+
+var response = document.query({"query":filter, "fields":"batteryLevel, apsdb.creationTime"});
+response = response.result.documents;
+return response
+
+var result =  {
+ 	"battery": {
+  		"description": "Battery level",
+  		"values": []
+    }
+}
+
+for(var i = 0; i < response.length; i++){
+	result.battery.values.push({
+      	"value": response[i].batteryLevel,
+      	"timestamp": (new Date(response[i]["creationDate"])).toISOString()
+    })  
+}
+return result;

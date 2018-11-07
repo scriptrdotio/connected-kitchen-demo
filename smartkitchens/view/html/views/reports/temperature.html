@@ -1,0 +1,47 @@
+<!-- begin tabs wrapper -->		
+<div class="col-xs-12 mt10">
+    <!-- begin tabs -->
+    <div class="box-shadow">
+        <!-- Nav tabs -->
+        <ul class="nav nav-pills nav-justified nav-styled" role="tablist">
+            <li role="presentation" class="active"><a href="#fuel" ng-click="vm.tab = 'fuel'" data-toggle="tab"><span class="fa-2x"> &gt; 30 °C <i class="fa fa-thermometer-three-quarters" aria-hidden="true"></i></span></a></li>
+        </ul>
+        <!-- Tab panes -->
+        <div class="tab-content bg-white">
+            <!-- begin fuel tab -->
+            <div class="padder10">
+                <!-- begin chart -->
+                <div class="col-xs-12 mb10 box-display mt15">
+                    <div class="box-shadow bg-white border">
+                        <scriptr-grid columns-definition='vm.temperatureColDef' 
+                                          api='smartkitchens/api/reports/highTemperature'
+                                          enable-delete-row='false'
+                                          row-model-type='virtual'
+                                          row-height='30'    
+                                          pagination="false"    
+                                          enable-add-row='false'
+                                          cell-editable='false'
+                                          suppress-filter="true"    
+                                          enable-client-side-filter='false'
+                                          enable-server-side-filter='false' 
+                                          enable-client-side-sorting='false'
+                                          enable-server-side-sorting='false'
+                                          row-model-selection='multiple'
+                                          pagination-page-size='50'
+                                          api-params="{'temperatureHigh': true}"
+                                          on-format-data="vm.temperatureFormatData"    
+                                          transport='https'>
+                            </scriptr-grid> 
+                    </div>
+                </div>
+                <!-- end chart -->      
+                <div class="clearfix"></div>     
+            </div>
+        </div>
+        <!-- end tab panes -->                             
+    </div>   
+    <!-- end tabs --->
+</div>
+<!-- end tabs wrapper -->		
+
+

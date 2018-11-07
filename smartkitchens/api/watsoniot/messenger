@@ -1,0 +1,48 @@
+var http = require("http");
+var log = require("log"); log.setLevel("info");
+var configModule = require("./config"); 
+
+function Messenger(config) {
+    this.config = config ? config : configModule;
+}
+
+/**
+ * Send a command to a device on behalf of an application
+ * @method sendCommand
+ * @param {Object} [device]
+ * @param {String} [device.url]: the url prefix to use by applications to send commands on bluemix
+ * @param {String} [device.username]: the app's API Key (obtained from Watson IoT service)      
+ * @param {String} [device.token]: the app's auth token  (obtained from Watson IoT service) 
+ * @param {Object} [msg]
+ * @param {Number} [msg.maxWait]:  wait time of the execution of a command
+ * @param {String} [msg.params]:  arguments passed to the command (optional)
+ * @param {String} [msg.commandId]:  the command to execute
+ */
+Messenger.prototype.sendCommand = function(device, msg) {
+   
+    // https://orgId.messaging.internetofthings.ibmcloud.com:8883/api/v0002/application/types/typeId/devices/deviceId/commands/commandId
+    var url = this.config.url + "application/types/" + device.type + "/devices/" + device.id + "/commands/" + msg.commandId;
+    var msgBody = {
+        "waitTimeSecs": this.config.maxWait
+    };
+    
+    if (msg.payload) {
+        params: msg.params;
+    }
+    
+    var reqParams = {
+        
+        url: url,
+        method: "POST",
+        headers: {
+            "Authorization":  "Basic " + btoa(this.config.username + ":" + this.config.token),
+            "Content-Type": "application/json"
+        },
+        bodyString: JSON.stringify(msgBody) 
+    };
+    
+    log.info("Request " + JSON.stringify(reqParams));
+    var resp = http.request(reqParams);
+    log.info("Response " + JSON.stringify(resp));
+    return resp;
+};

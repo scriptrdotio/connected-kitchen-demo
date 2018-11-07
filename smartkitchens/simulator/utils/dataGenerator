@@ -1,0 +1,203 @@
+var uuidGenerator = require("smartkitchens/simulator/utils/uuid");
+var config = require("smartkitchens/simulator/config");
+/**
+* Generates number of random geolocation points given a center and a radius.
+* @param  {Object} center A JS object with lat and lng attributes.
+* @param  {number} radius Radius in meters.
+* @param {number} count Number of points to generate.
+* @return {array} Array of Objects with lat and lng attributes.
+*/
+function generateRandomPoints(center, radius, count, tags) {
+  var points = [];
+  for (var i=0; i<count; i++) {    
+    points.push(generateRandomPoint(center, radius));
+  }
+  return points;
+}
+
+function generateRandomDevices(center, radius, count, tags, types, groups) {
+  var points = [];
+  for (var i=0; i<count; i++) {    
+    points.push(
+      generateRandomDevice(center, radius, 
+      tags[Math.floor(Math.random() * tags.length)],
+      types[Math.floor(Math.random() * types.length)], 
+      groups[Math.floor(Math.random() * groups.length)]));
+  }
+  return points;
+}
+
+function generateRandomDevice(center, radius, tag, type, group){
+	var point = generatePointsInSquare(1)[0];
+    
+    point.id = point.myName =  uuidGenerator.generate();
+    point.creationDate = new Date().getTime();
+    point.building = tag;
+  	point.city = "Montreal";
+  	point.country = "Canada";
+  	point.type = type;
+  	point.group = group;
+  	point.source = "simulator";
+
+  	return point;
+}
+
+
+function generateDeviceBaseData(id, center, radius, tag, type, group){
+	var point = generatePointsInSquare(1)[0];
+    
+    point.id = id;
+    point.creationDate = new Date().getTime();
+    point.building = tag;
+  	point.city = "Montreal";
+  	point.country = "Canada";
+  	point.type = type;
+  	point.group = group;
+  	point.source = "simulator";
+
+  	return point;
+}
+
+/**
+* Generates number of random geolocation points given a center and a radius.
+* Reference URL: http://goo.gl/KWcPE.
+* @param  {Object} center A JS object with lat and lng attributes.
+* @param  {number} radius Radius in meters.
+* @return {Object} The generated random points as JS object with lat and lng attributes.
+*/
+function generateRandomPoint(center, radius) {
+  var x0 = center.lng;
+  var y0 = center.lat;
+  // Convert Radius from meters to degrees.
+  var rd = radius/77300;
+
+  var u = Math.random();
+  var v = Math.random();
+
+  var w = rd * Math.sqrt(u);
+  var t = 2 * Math.PI * v;
+  var x = w * Math.cos(t);
+  var y = w * Math.sin(t);
+
+  var xp = x/Math.cos(y0) + Math.random();
+
+  // Resulting point.
+  return {'latitude': y+y0, 'longitude': xp+x0};
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+//this is temp hack, not taking the center / radius into consideration
+function generatePointsInSquare(numberofPoints){
+	var points = [];
+  	for(var i = 0; i < numberofPoints; i++){
+      	var minLat = 45.469767;
+      	var maxLat = 45.630399;
+      	var maxLong = -73.562798;
+      	var minLong = -73.858399;
+      	var generatedLat = minLat + (maxLat - minLat ) * Math.random();
+      	var generatedLong = minLong + (maxLong - minLong ) * Math.random();  
+      	points.push({latitude: generatedLat, longitude: generatedLong})
+    }
+  	return points;
+}
+
+//Returns below 40 30% of the times & above 40 the rest 70%
+function generateBatteryLevel() {
+  var x =  Math.floor((Math.random() * 10));
+  if(x < 3) {
+    return randomIntFromInterval(40, 5);
+  } else {
+    return randomIntFromInterval(100, 41);
+  }
+}
+
+//Temperature = -5 to 50 celsisus
+//Returns below 5 30% of the times & above 40 the rest 70%
+function generateTemperature() {
+  var x =  Math.floor((Math.random() * 10));
+  if(x < 3) {
+    return randomIntFromInterval(-5, 5);
+  } else {
+    return randomIntFromInterval(6, 50);
+  }
+}
+
+//Humidity= 0 to 100% relative humidity range
+function generateHumidityLevel() {
+  var x =  Math.floor((Math.random() * 10));
+  if(x < 3) {
+    return randomIntFromInterval(60, 100);
+  } else {
+    return randomIntFromInterval(10, 59);
+  }
+}
+
+//Pressure= 260 to 1260 mbar or 800 - 1260 mbar
+function generatePressure() {
+  var x =  Math.floor((Math.random() * 10));
+  if(x < 3) {
+    return randomIntFromInterval(260, 900);
+  } else {
+    return randomIntFromInterval(901, 1260);
+  }
+}
+
+
+//Returns true 30% of the times & false the rest 70%
+function generateTamperedState() {
+  var x = Math.floor((Math.random() * 10));
+  if(x < 3) {
+    return "true";
+  } else {
+    return "false";
+  }
+}
+
+function generateLockState(){
+	//generate random lock state
+  	var state = config.states[Math.floor(Math.random()*config.states.length)];
+  	//pick random person to change the lock state
+  	//we have a lock, create an event
+  	var by = config.names[Math.floor(Math.random()*config.names.length)];
+  	 return {"state": state, "by": by}
+  	
+}
+
+
+function getOutsideTemperature(location){
+    var apiKey = "2b4e451ff5faf166";
+    var apiResponse = apsdb.callHttp("http://api.wunderground.com/api/" + apiKey + "/conditions/q/" + encodeURIComponent(location) + ".json");
+    var parsedResponse = JSON.parse(apiResponse.body);
+    var currentTemp = parsedResponse.current_observation.temp_c;
+    return currentTemp;
+}
+
+//Generate Acceleration
+
+//Generate Magnetic
+
+/**
+The accelerometer and gyroscope measurements are explained in the MPU-6050 datasheet in the GYRO_CONFIG and ACCEL_CONFIG register descriptions (sections 4.4 and 4.5 on pages 14 and 15). The scale of each depends on the sensitivity settings chosen, which can be one of +/- 2, 4, 8, or 16g for the accelerometer and one of +/- 250, 500, 1000, or 2000 deg/sec for the gyroscope. The accelerometer produces data in units of acceleration (distance over time2), and the gyroscope produces data in units of rotational velocity (rotation distance over time).
+
+ 
+
+The output scale for any setting is [-32768, +32767] for each of the six axes. The default setting in the I2Cdevlib class is +/- 2g for the accel and +/- 250 deg/sec for the gyro. If the device is perfectly level and not moving, then:
+
+X/Y accel axes should read 0
+Z accel axis should read 1g, which is +16384 at a sensitivity of 2g
+X/Y/Z gyro axes should read 0
+In reality, the accel axes won't read exactly 0 since it is difficult to be perfectly level and there is some noise/error, and the gyros will also not read exactly 0 for the same reason (noise/error).
+
+**/
+
+function randomIntFromInterval(min,max) {
+    return Math.floor(Math.random()*(max-min+1)+min);
+}
+

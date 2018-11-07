@@ -1,0 +1,11 @@
+var accountKey = request.account.accountKey;
+
+var simulatedDevicesKey = accountKey + "_device";
+
+var groups = ["acme", "scriptrio", "fe"];
+var states = ["LOCKED", "UNLOCKED"];
+var types = ["Residential", "Commercial", "Health Care", "Industrial"];
+var addresses = ["Skyreach Tower", "Calypso Tower", "Ascendance Spire", "Freedom Tower", "Arch Jungle Pillar", "Mithril Peak Lookout", "Compass Manor", "Elysium Mansion","Liontooth Sanctuary", "Stormkeeper Sanctum"];
+
+var names = ["Judith", "Norma", "Ernest", "Theresa", "Tom", "Eric", "Jim", "Ryan", "Oliver","Justin", "Kevin", "John", "Marvet"]
+

@@ -1,0 +1,23 @@
+//MFE: I THINK THIS CAN BE MOVED TO THE DECISION TABLE POST_SCRIPT
+var log = require("log");
+log.setLevel("INFO")
+var zohoLib = require('/smartkitchens/entities/zoho/zoho.js');
+var _ = require("modules/underscore/underscore.js")._;
+
+var config = require("smartkitchens/entities/config");
+var templates = require("smartkitchens/entities/actions/templates");
+
+var zoho = new zohoLib.zoho();
+/** 
+ * For each decision table result (action) run the specified action (zoho ticket or email)
+ * and build emails / content from template using underscore
+ */
+function execute(alertType, device){
+    var compiledSubjectTemplate = _.template(templates.getTemplate("zoho", alertType).subject)(device);
+    var compiledBodyTemplate = _.template(templates.getTemplate("zoho", alertType).body)(device);
+    log.info("Create zoho ticket for " +alertType+ ": "+compiledSubjectTemplate + " "+ compiledBodyTemplate);
+    var createTicket = zoho.createTicket(request.user.id , config["zoho"].TO_EMAIL, compiledSubjectTemplate, compiledBodyTemplate, device.id)
+    log.info(JSON.stringify(createTicket));
+    return createTicket;
+}
+

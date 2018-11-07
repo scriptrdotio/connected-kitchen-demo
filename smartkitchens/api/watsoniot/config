@@ -1,0 +1,15 @@
+var orgId = "o6i047";
+
+//https://orgId.messaging.internetofthings.ibmcloud.com:8883/api/v0002/"
+var url = "https://"+  orgId + ".messaging.internetofthings.ibmcloud.com:8883/api/v0002/";
+
+ // Garage door API key
+var apiKey = "a-o6i047-a01sx3iarj";
+var appToken = "I15ZmND+qEkW?7tAc+"; 
+
+//gd001 device
+var token = "ibQZFVCSx)r@R_VhN6"; 
+var username = "use-token-auth";
+
+// Max wait time for a command to execute on a device
+const MAX_WAIT = 2000;

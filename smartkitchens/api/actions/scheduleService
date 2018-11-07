@@ -1,0 +1,52 @@
+var device = null;
+var pubsub = require("pubsub");
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var devicePublisher = require("smartkitchens/entities/devicepublisher");
+
+
+//get all parameters from http body or parameters
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+
+
+if(query.id) {
+    var topic = pubsub.getInstance("nebulaDigest");
+
+    var zohoAction = require("smartkitchens/entities/actions/zoho/createTicket")
+    var data = JSON.parse(zohoAction.execute("SP_TICKET", {"id": query.id}))
+    if(data.response.result.responsecode == "2001") {
+        //return JSON.parse(result);
+        var ticketId = data.response.result.responsedata.Cases.record.id;
+        var deviceDefinition = deviceManager.getDeviceDefinition(query.id);
+        log.info("[ScheduleService] Latest device definition: "+JSON.stringify(deviceDefinition))
+        if(deviceDefinition.ticketId) {
+             return {"status": "failure", "errorDetail":"Service Performance already scheduled."}
+        } else {
+            deviceDefinition["ticket_id"] = ticketId;
+            deviceManager.saveDeviceDefinition(deviceDefinition);
+            log.info("[ScheduleService] Successuful, ticket Id created and stored in device definition: "+ticketId);
+            
+            var result = topic.publish("ScheduleService", false);
+            var previousEntry = deviceManager.getLatestDeviceEntry(query.id);
+            previousEntry["ticket_id"] = ticketId;
+            deviceManager.saveDeviceEvent(previousEntry);
+            devicePublisher.publishDevice(previousEntry, true);
+            
+        }
+    } else {
+        log.info("[ScheduleService] Failed to create ticket in zoho system.")
+        return {"status": "failure", "errorDetail":"Failed to create ticket in zoho system."}
+    }
+    
+
+} else {
+    console.log("Invalid params; deviceId.");
+    log.error("Invalid params; deviceId.");
+}
+

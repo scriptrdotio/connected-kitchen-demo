@@ -1,0 +1,43 @@
+var moment = require("/modules/momentjs/moment.min.js").moment;
+var document = require("document");
+var device = require("device");
+var log = require("log");
+log.setLevel("INFO");
+
+var getUser = device.get(request.user.id);
+var userGroups = getUser.result["groups"];
+var userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [deviceGoups] : userGroups) :["scriptrio"];
+
+
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+if(typeof query == 'string' && params != null){
+  	try{
+    	query = JSON.parse(params);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+
+
+var toApstrataDate = function(date) {
+  return (date.split(".")[0]+"+0000");
+}
+
+var filter = 'group = "' + userGroups[0] + '"';
+if(query && query.tamperedWith){
+    filter +=" and tampered<string> = \"true\" and tamperDate<date> >= \"" + toApstrataDate(moment().subtract(30, 'days').toISOString()) + "\"";
+} 
+
+
+log.info(JSON.stringify(filter));
+var response = document.query({"query":filter, "fields":"*", "sort": "tamperDate<date:DESC>"});
+response = response.result.documents;
+
+return response;

@@ -1,0 +1,124 @@
+var http = require("http");
+var authKey = "";
+var expiryTime = 1;     
+if(request.parameters["auth_token"]){
+    try{
+        authKey = atob(request.parameters["auth_token"]);
+    }catch(e){
+        //  this thing here shouldn't happen
+        //return {"metadata" :{"status":"failure" ,"errorCode" :"INVALID_ANONYMOUS_TOKEN", errorDetail:"The anonymous token provided is invalid"}};
+    }
+}
+console.log(request.parameters['auth_token']);
+console.log(authKey);
+
+if(request.parameters["expiry"]){
+    try{
+        expiryTime = parseInt(request.parameters["expiry"]);
+        expiryTime = expiryTime * 60 * 60 * 1000;    
+    }catch(e){
+        //return {"metadata" :{"status":"failure" ,"errorCode" :"INVALID_PARAMETER_VALUE", errorDetail:"Invalid parameter value for parameter expiry."}};
+    }
+}
+
+
+//systemLogger.setLevel("off");
+
+var log = require("log");
+log.setLevel("INFO")
+function verifyCredentials(id,password){
+    if(id == null || id.trim() == ""){
+        return {"metadata" :{"status":"failure" ,"errorCode" :"PARAMETER_REQUIRED", errorDetail:"The parameter [id] is required"}};
+    }
+
+    if(password == null || password.trim() == ""){
+        return {"metadata" :{"status":"failure" ,"errorCode" :"PARAMETER_REQUIRED", errorDetail:"The parameter [password] is required"}};
+    }
+
+
+    var apiCall = apsdb.getApiCall("https://web.scriptr.io/apsdb/rest","GET", authKey, "VerifyCredentials", {"apsws.responseType" : "JSON"},{},true,id,password);
+
+    var url = apiCall.baseURL + "?" + apiCall.query;
+
+    if(!apiCall.metadata){
+        var result = http.request({
+            "url" : url
+        });
+        var jsonResult = JSON.parse(result.body);
+        if(jsonResult.response.metadata.status == "success"){
+            var tokenResult = apsdb.callApi("GenerateToken",{"apsdb.runAs":id, "apsdb.bindReferrer": false},null);
+            if(tokenResult.metadata.status == "success"){
+                tokenResult["result"]["token"] = tokenResult["result"]["apsdb.authToken"];
+                delete tokenResult["result"]["apsdb.authToken"];
+                var getDevice = apsdb.callApi("GetDevice",{"id":id},null);
+                log.info("--->getDevice"+JSON.stringify(getDevice))
+                if(getDevice.metadata.status == "success"){
+                    tokenResult["result"]["user"] = getDevice.result["device"]
+                } else {
+                    var getUser = apsdb.callApi("GetUser",{"login":id},null);
+                    log.info("--->getUser"+JSON.stringify(getUser))
+                    if(getUser.metadata.status == "success"){
+                        tokenResult["result"]["user"] = getUser.result["user"]
+                    }
+                }
+                writeResponse(tokenResult,id);
+                return tokenResult;
+
+            }else{
+                if(tokenResult.metadata.errorCode == "TOO_MANY_TOKENS"){
+                    var getDevice = apsdb.callApi("GetDevice",{"id":id},null);
+                    if(getDevice.metadata.status == "success"){
+                        getDevice.result = {"token":getDevice.result["device"]["token"]["apsdb.authToken"]};
+                        writeResponse(getDevice,id);
+                    }
+                    return getDevice;
+
+                }
+            }
+        }else{
+            return jsonResult["response"];
+        }
+    }else{
+        return apiCall; 
+    }
+
+}
+
+function writeResponse(tokenResponse,id){
+
+    var token =tokenResponse.result["token"];
+    token = btoa(authKey + ":" + id + ":" + token);
+
+    var date = new Date();
+
+
+    date.setTime(date.getTime() + expiryTime);
+
+    var result = { "response" :
+                  {
+                      "metadata":{
+                          "status":"success", 
+
+                      },
+                      "result":{ "metadata":{
+                          "status":"success"
+                      }, 
+                                "result" :token
+                               }
+                  }
+                 };
+
+
+
+
+    var cookieHeader = {"Set-Cookie": "token=" + token + ";expires=" + date.toUTCString()+ ";Path=/;Secure"};
+    var cookieHeader2 = {"Set-Cookie": "user=" + JSON.stringify(tokenResponse.result["user"]) + ";expires=" + date.toUTCString()+ ";Path=/;Secure"};
+    response.addHeaders(cookieHeader);
+    response.addHeaders(cookieHeader2);
+    response.addHeaders({"access-control-allow-headers": "Set-Cookie"});
+    response.addHeaders(configuration.crossDomainHeaders);
+    response.setHeader("content-type","application/json;charset=UTF-8")
+    response.write(JSON.stringify(result));
+    response.flush();
+    response.close();
+}

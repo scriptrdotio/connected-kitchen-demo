@@ -1,0 +1,104 @@
+function format(data){
+    var result = {};
+    for(var index = 0; index < data.length; index++ ){
+        var datum = data[index];
+        if(result[datum.id] == null){
+            result[datum.id] = {
+                "0": [],
+                "order": ["0"],
+                "source":"simulator"
+            };
+        }
+        var point = {
+            id: {value: datum.id},
+            lat: {value: datum.latitude},
+            long: {value:datum.longitude},
+            location: {value: datum.city + " / " + datum.country}, //Container type
+            type: {value: datum.type},//{value: datum.city + " / " + datum.country},
+            oven: {
+                temperature: {value: datum.oven_temperature},
+           	    humidity:  {value: datum.oven_humidity},
+                sensor: {value: datum.ovenSensor},
+                state: {value: datum.oven_door_state},
+            },
+             fridge: {
+                temperature: {value: datum.fridge_temperature},
+           	    humidity:  {value: datum.fridge_humidity},
+                sensor: {value: datum.fridgeSensor},
+                state: {value: datum.fridge_door_state},
+                performanceTicket: {value: datum.ticket_id},
+            },
+            country:  {value:datum.country},
+            city:  {value: datum.city},
+            by: {value: datum.by},
+            building: {value: datum.building},
+            latest: result[datum.id].length == 0 ? true : false
+        }
+        if(datum.creationDate == null){
+            point.timestamp = (new Date()).toISOString();
+        }else{
+            point.timestamp = (new Date(datum.creationDate)).toISOString();
+        }
+        result[datum.id]["0"].push(point)
+
+
+    }
+    return result;
+}
+
+
+function executeDecisionTable(decisionTable, payload){
+	var sdtLibScript = asLibrary(decisionTable);
+	return sdtLibScript.execute(payload); 
+}
+
+//This is a utility function  to transform rest simple decision table scripts into a required library
+function asLibrary(sdtRestScript) {
+    log.info("simple decision table script "+sdtRestScript)
+    var params = {
+      "apsdb.scriptName": sdtRestScript
+    };
+    var sdt_api_script =  apsdb.callApi("GetScript", params, {});
+    if(sdt_api_script.metadata.status == "success") {
+      var o = JSON.parse(sdt_api_script.result);
+      //THIS NEEDS TO BE ENHANCED AS A REGEX THAT CATCHES ALL "return..." outside a function(){} definition;
+      //START TRANSFORM, to get decision table scriptr script
+      // var p = (o.substring((o.lastIndexOf("*#*#*/") + "*#*#*/".length), o.length ));
+      var p = o.content
+      var content = p.substring(0, p.lastIndexOf("//START_REST_CALL"));
+      log.info(content)
+      //Wrap library as a we would do if it was a require, pass request
+      var x = "(function(request){"+ content + " return {execute: function(payload) { return execute(payload);}}})(request)";
+      //Return decision table as a library
+      return eval(x);
+      //END TRANSFORM 
+    } else { //decision table script not found, return as if we required a non-existing script
+      return require(sdtRestScript);
+    }
+}
+
+var deviceData = require("smartkitchens/simulator/utils/dataGenerator");
+
+function topUpDeviceEntry(device, config){
+    
+    //generate random device state
+    device.state = (device.state) ? device.state: config.states[Math.floor(Math.random()*config.states.length)];
+    //pick random person to change the device state
+    device.by = config.names[Math.floor(Math.random()*config.names.length)];
+    
+    device.tampered = deviceData.generateTamperedState();
+    if(device.tampered == "true"){
+        device.tamperDate = new Date().toISOString().split(".")[0]+"+0000"
+    }
+
+    //Need this on single update and on generation of data as we are not loading the lock info from db when updating state
+    device.batteryLevel = (device.batteryLevel) ? device.batteryLevel : deviceData.generateBatteryLevel() 
+    device.temperature = (device.temperature) ? device.temperature : deviceData.generateTemperature();
+    device.outsideTemperature = (device.outsideTemperature) ? device.outsideTemperature : deviceData.getOutsideTemperature("montreal,canada")
+    device.pressure = (device.pressure) ? device.pressure : deviceData.generatePressure();
+    device.humidity = (device.humidity) ? device.humidity : deviceData.generateHumidityLevel();
+    device.creationDate =  new Date().toISOString().split(".")[0]+"+0000";
+    
+    return device;
+}
+

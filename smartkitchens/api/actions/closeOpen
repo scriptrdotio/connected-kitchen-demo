@@ -1,0 +1,35 @@
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var deviceProcessor = require("smartkitchens/entities/deviceprocessor");
+var log = require("log");
+log.setLevel("INFO");
+
+
+//get all parameters from http body or parameters
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+
+var device = null;
+
+if(query.id && query.state && query.type) {
+    device = deviceManager.getLatestDeviceEntry(query.id);
+    if(device){
+        device.creationDate = new Date().getTime();
+        if(query.type == "oven") 
+      		device["oven_door_state"] = query.state;
+       	if(query.type == "fridge")
+            device["fridge_door_state"] = query.state;
+        deviceProcessor.processEntry(device);
+    } else {
+        console.log("Invalid id, device not found.")
+        log.error("Invalid id, device not found.");
+    }
+} else {
+    console.log("Invalid params; id, state & type are required for a lock/unlock simulation.");
+    log.error("Invalid params; id, state & type are required for a lock/unlock simulation.");
+}

@@ -1,0 +1,69 @@
+var _templates = {
+   zoho: {
+       SP_TICKET: {
+           subject: 'SP ticket for <%= id %>: Service Performance Requested!',
+           body: 'Kitchen with id <%= id %> has requested a service performance for fridge.'
+       }
+  },
+  mail: {
+      FRIDGE_OPENED_NOW: {
+        subject: 'FRIDGE in kitchen <%= id %>: Just Opened!',
+        body: 'FRIDGE in kitchen <%= id %> was opened.'
+      },
+      OVEN_OPENED_NOW: {
+        subject: 'OVEN in kitchen <%= id %>: Just Opened!',
+        body: 'OVEN in kitchen <%= id %> was opened.'
+      },
+      FRIDGE_OPENED: {
+        subject: 'FRIDGE in kitchen <%= id %>: Opened!',
+        body: 'FRIDGE in kitchen <%= id %> has been opened for too long.'
+      },
+      OVEN_OPENED: {
+        subject: 'OVEN in kitchen <%= id %>: Opened!',
+        body: 'OVEN in kitchen <%= id %> has been opened for too long.'
+      },
+      FRIDGE_HIGH_TEMPERATURE: {
+        subject: 'FRIDGE in kitchen <%= id %>: High Temperature!',
+        body: 'FRIDGE in kitchen <%= id %> has high temperature of <%= fridge_temperature %>.'
+      },
+      OVEN_HIGH_TEMPERATURE: {
+        subject: 'OVEN in kitchen <%= id %>: High Temperature!',
+        body: 'OVEN in kitchen <%= id %> has high temperature of <%= oven_temperature %>.'
+      },
+      FRIDGE_LOW_TEMPERATURE: {
+        subject: 'FRIDGE in kitchen <%= id %>: Low Temperature!',
+        body: 'FRIDGE in kitchen <%= id %> has low temperature of <%= fridge_temperature %>.'
+      },
+      OVEN_LOW_TEMPERATURE: {
+        subject: 'OVEN in kitchen <%= id %>: Low Temperature!',
+        body: 'OVEN in kitchen <%= id %> has low temperature of <%= oven_temperature %>.'
+      },
+      FRIDGE_HIGH_HUMIDITY: {
+        subject: 'FRIDGE in kitchen <%= id %>: High Humidity!',
+        body: 'FRIDGE in kitchen <%= id %> has high humidity of <%= fridge_humidity %>.'
+      },
+      OVEN_HIGH_HUMIDITY: {
+        subject: 'OVEN in kitchen <%= id %>: High Humidity!',
+        body: 'OVEN in kitchen <%= id %> has low humidity of <%= oven_humidity %>.'
+      },
+      FRIDGE_LOW_HUMIDITY: {
+        subject: 'FRIDGE in kitchen <%= id %>: Low Humidity!',
+        body: 'FRIDGE in kitchen <%= id %> has low humidity of <%= fridge_humidity %>.'
+      },
+      OVEN_LOW_HUMIDITY: {
+        subject: 'OVEN in kitchen <%= id %>: Low Humidity!',
+        body: 'OVEN in kitchen <%= id %> has low humidity of <%= oven_humidity %>.'
+      }
+  }, 
+  sms : {
+     FRIDGE_OPENED_NOW: 'FRIDGE in kitchen <%= id %> just got opened.',
+     OVEN_OPENED_NOW: 'OVEN in kitchen <%= id %> just got opened.',
+     FRIDGE_OPENED: 'FRIDGE in kitchen <%= id %>: has been opened for too long.',
+     OVEN_OPENED: 'OVEN in kitchen <%= id %>: has been opened for too long.'
+  }
+}
+
+
+function getTemplate(type, event){
+  return _templates[type][event];
+}

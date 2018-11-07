@@ -1,0 +1,38 @@
+var redis = require("redis").getInstance("redisFacade");
+var deviceManager = require("smartkitchens/entities/devicemanager")
+var config = require("/smartkitchens/entities/config");
+var _= require("modules/underscore/underscore.js")._;
+var log = require("log");
+
+var accountKey = config.accountKey;
+
+var prefix = accountKey + "_notification_";
+
+function deleteNotificationSettings(group) {
+     var key = prefix + group;
+     return redis.del(key)
+}
+
+function saveNotificationSettings(group, emails, mobiles) {
+   var key = prefix + group;
+   if(emails && !(emails instanceof Array))
+       emails = [emails];
+    if(mobiles && !(mobiles instanceof Array))
+       mobiles = [mobiles];
+   redis.set(key, JSON.stringify({"emails": emails, "mobiles": mobiles}));
+}
+
+function getNotificationSettings(group) {
+   var key = prefix + group;
+   var result = redis.get(key);
+   return (result) ? JSON.parse(result) : result;
+}
+
+function getDeviceNotificationSettings(id) {
+   var device = deviceManager.getDeviceDefinition(id);
+   if(device.group) {
+       return getNotificationSettings(device.group)
+   }
+    return null;
+}
+

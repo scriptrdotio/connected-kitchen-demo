@@ -1,0 +1,43 @@
+var simulatedDeviceManager = require("smartkitchens/simulator/entities/simulatedDeviceManager");
+var deviceProcessor = require("smartkitchens/entities/deviceprocessor");
+var deviceData = require("smartkitchens/simulator/utils/dataGenerator");
+var config = require("smartkitchens/simulator/config");
+
+var log = require("log");
+log.setLevel("INFO");
+
+var device = simulatedDeviceManager.getRandomSimulatedDevice();
+
+var accountKey = config.accountKey;
+
+var lock_prefix =  accountKey + "_device_publish_lock_";
+var locked_prefix =  accountKey + "_device_publish_locked_";
+
+if(device) {
+    //generate random device state
+    device.state = config.states[Math.floor(Math.random()*config.states.length)];
+    //pick random person to change the device state
+    device.by = request.user.name//config.names[Math.floor(Math.random()*config.names.length)];
+    
+    device.tampered = deviceData.generateTamperedState();
+    if(device.tampered == "true"){
+        device.tamperDate = new Date().toISOString().split(".")[0]+"+0000"
+    }
+
+    //Need this on single update and on generation of data as we are not loading the lock info from db when updating state
+    device.batteryLevel = deviceData.generateBatteryLevel() 
+    device.temperature = deviceData.generateTemperature();
+    device.outsideTemperature = deviceData.getOutsideTemperature("montreal,canada")
+    device.pressure = deviceData.generatePressure();
+    device.humidity = deviceData.generateHumidityLevel();
+    device.creationDate = new Date().getTime();
+   
+    deviceProcessor.processEntry(device);
+    
+    return device;
+} else {
+    log.error("No available devices.");
+}
+
+
+

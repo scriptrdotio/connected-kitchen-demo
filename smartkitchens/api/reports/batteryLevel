@@ -1,0 +1,44 @@
+var document = require("document");
+var device = require("device");
+var log = require("log");
+
+var getUser = device.get(request.user.id);
+var userGroups = getUser.result["groups"];
+var userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [deviceGoups] : userGroups) :["scriptrio"];
+
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+if(typeof query == 'string'){
+  	try{
+    	query = JSON.parse(params);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+log.info("QUER"+JSON.stringify(query))
+var filter = 'group = "' + userGroups[0] + '"';
+if(query.batteryL1){
+    filter +="and batteryLevel<numeric> >= 25 and batteryLevel<numeric> <= 35 "
+}
+
+if(query.batteryL2){
+     filter +="and batteryLevel<numeric> >= 15 and batteryLevel<numeric> <= 25 "
+}
+
+if(query.batteryL3){
+    filter +="and batteryLevel<numeric> < 15"
+}
+var log = require("log");
+log.setLevel("INFO");
+log.info(filter);
+console.log(JSON.stringify(filter))
+var response = document.query({"query":filter, "fields":"*", "sort": "batteryLevel<numeric:ASC>"});
+response = response.result.documents;
+
+return response;

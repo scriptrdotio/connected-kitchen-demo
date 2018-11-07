@@ -1,0 +1,23 @@
+var messengerModule = require("./messenger");
+var config = require("./config");
+
+try {
+    
+    var config = {
+        
+        url: config.url,
+    	username: config.apiKey,
+        token: config.appToken,
+        maxWait: config.maxWait
+    };
+    
+    var messenger = new messengerModule.Messenger(config);
+    var device = {
+        id: "gd001",
+        type: "GarageDoor"
+    };
+    
+    return messenger.sendCommand(device, {commandId: "open"});
+}catch(exception){
+    return exception;
+}

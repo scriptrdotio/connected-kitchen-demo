@@ -1,0 +1,57 @@
+var redis = require("redis").getInstance("redisFacade");
+var deviceManager = require("smartkitchens/entities/devicemanager")
+var groupManager = require("smartkitchens/entities/groupmanager")
+var notificationManager = require("smartkitchens/entities/notificationmanager")
+
+
+//Clean simulated data
+function deleteSimulatedDevices() {
+    var devices =  deviceManager.getAllDevices();
+    for(var i = 0; i <devices.length; i++) {
+        var deviceKey = devices[i];
+        var device =  JSON.parse(redis.lrange(deviceKey, 0, 0));
+        var isSimulatedDevice = (device["source"] == "simulator");
+         console.log(device.id + ", "+ isSimulatedDevice)
+         if(isSimulatedDevice) {
+            groupManager.removeGroupDevice(device);
+            deviceManager.deleteDevice(device.id);
+        }
+    }
+}
+
+//Get a random simulated device
+function getRandomSimulatedDevice() {
+    var devices =  deviceManager.getAllDevices();
+    var randomDeviceKey = null;
+    var device = null;
+    var source = null;
+    if(devices && devices.length > 0) {
+        do {
+            randomDeviceKey = devices[Math.floor(Math.random() * devices.length)];
+            device = JSON.parse(redis.lrange(randomDeviceKey, 0, 0))
+            source = device["source"];
+        } while( source != "simulator")
+    }
+    return device;
+}
+    
+    
+//Get all random simulated devices
+function loadAllSimulatedDevices() {
+    var devices =  deviceManager.getAllDevices();
+    var simulatedDevices = [];
+    if(devices && devices.length > 0) {
+         for(var i = 0; i < devices.length; i++) {
+             var deviceKey = devices[i];
+             var entry = redis.lrange(deviceKey, 0, 0);
+             if(entry) {
+                 var device = JSON.parse(entry)
+                 if(device.source == "simulator") {
+                     simulatedDevices.push(deviceKey)
+                 }
+             }
+             
+         }
+    }
+    return simulatedDevices;
+}

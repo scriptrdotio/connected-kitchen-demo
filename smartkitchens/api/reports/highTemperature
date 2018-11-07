@@ -1,0 +1,37 @@
+var document = require("document");
+var device = require("device");
+var log = require("log");
+
+var getUser = device.get(request.user.id);
+var userGroups = getUser.result["groups"];
+var userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [deviceGoups] : userGroups) :["scriptrio"];
+
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+if(typeof query == 'string' && params != null){
+  	try{
+    	query = JSON.parse(params);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+
+var filter = 'group = "' + userGroups[0] + '"';
+if(query & query.temperatureHigh){
+    filter +=" and temperature<numeric> >30"
+}
+
+var log = require("log");
+log.setLevel("INFO");
+log.info(filter);
+console.log(JSON.stringify(filter))
+var response = document.query({"query":filter, "fields":"*", "sort": "temperature<numeric:DESC>"});
+response = response.result.documents;
+
+return response;

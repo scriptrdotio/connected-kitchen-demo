@@ -1,0 +1,56 @@
+var http = require("http");
+var device = require("device");
+var config = require("smartkitchens/entities/config")
+
+var id = request.parameters["id"] || "demo"; 
+var password = request.parameters["password"] || "demo";
+var authKey = request.account.accountKey;
+var expiry = request.parameters["expiry"] || config.expiry;
+
+//Verfify device credentials, use device.verifyCredentials(id, password)
+var jsonResult = device.verifyCredentials(id, password);
+if(jsonResult.metadata.status == "success"){
+        var data = {}
+        //Get device token, device.getDevice
+        var getDevice = device.get(id);
+        if(getDevice.metadata.status == "success"){
+            data["user"] = getDevice.result;
+            data["token"] = getDevice.result["auth_token"]
+            writeResponse(data, authKey, id, expiry);
+        } 
+    	return getDevice;
+} else{
+    return jsonResult;
+}
+
+//Add to response the cookie data, and logged in device details
+function writeResponse(data, authKey, id, expiryTime){
+    var date = new Date();
+    date.setTime(date.getTime() + expiryTime);
+    var result = { "response" : {
+                      "metadata":{
+                          "status":"success", 
+                      },
+                      "result":{ 
+                          "metadata":{
+                              "status":"success"
+                          }, 
+                          "result": {
+                              token: data["token"],
+                              user: data["user"]
+                          }
+                      }
+                  }
+                 };
+    var cookieHeader = {"Set-Cookie": "token=" + data["token"] + ";expires=" + date.toUTCString()+ ";Path=/;Secure"};
+    var cookieHeader2 = {"Set-Cookie": "user=" + JSON.stringify(data["user"]) + ";expires=" + date.toUTCString()+ ";Path=/;Secure"};
+    response.addHeaders(cookieHeader);
+    response.addHeaders(cookieHeader2);
+    response.addHeaders({"access-control-allow-headers": "Set-Cookie"});
+    response.addHeaders(configuration.crossDomainHeaders);
+    response.setHeader("content-type","application/json;charset=UTF-8")
+    response.write(JSON.stringify(result));
+    response.flush();
+    response.close();
+}
+return login.verifyDeviceCredentials(authKey, id, password, expiry);

@@ -1,0 +1,34 @@
+//Generare the simulated devices
+var deviceGenerator = require("smartkitchens/simulator/utils/dataGenerator");
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var groupManager = require("smartkitchens/entities/groupmanager");
+var config = require("smartkitchens/simulator/config");
+
+var devices = deviceGenerator.generateRandomDevices(
+    {"lat": 45.5602805, "lng": -73.8521324}, 
+    200, 
+    config.addresses.length, 
+    config.addresses, 
+    config.types, 
+    config.groups);
+
+for(var i = 0; i < devices.length; i++) {
+    //Save device definition
+    deviceManager.saveDeviceDefinition(devices[i]);
+    //Save device entry
+    deviceManager.saveDeviceEvent(devices[i]);
+    //Add device to group
+    groupManager.saveGroupDevice({"id": devices[i].group, "device": devices[i].id});
+} 
+
+return devices;
+
+
+
+
+
+
+
+
+
+

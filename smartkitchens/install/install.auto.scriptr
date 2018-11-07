@@ -1,0 +1,160 @@
+var responseObject = {};
+var channels = require("channel");
+var devices = require("device");
+var groups = require("group");
+
+
+/** SETUP ADVANCED APP REQUIRED DOMAIN IF NO DOMAIN IS SET **/
+var subdomain = request.account.accountKey;
+var params = {
+    "apsdb.name": subdomain
+}
+
+var step = apsdb.callApi("SaveSubdomain", params, null); 
+responseObject["subdomainCreation_"+subdomain] = JSON.stringify(step)
+
+
+/** CREATE GROUPS 
+	Create subscibe Channels per Group to send over data to the browser subscriber 
+    Create a device used to login for every group -- this should be a user.
+**/
+var groupsList = ["acme", "scriptrio", "fe", "editor"];
+groupsList.forEach(function(name) {
+   	var step1 = groups.create(name);
+   	responseObject["groupCreation_"+name] = JSON.stringify(step1);
+    var subAcl = "group:".concat(name);
+    var pubAcl = "group:".concat(name);
+ 	var params = {"name" :"responseChannel_"+name, "subscribeACL": [subAcl],"publishACL":  [pubAcl]};
+	var step2 = apsdb.callApi("SaveChannel", params , null )
+   	responseObject["channelCreation_"+params.name] = JSON.stringify(step2)
+});
+
+/** Create Anonymous publish channel used to receive requests from browser **/
+var channelsList =  ["requestChannel"];
+var options = {
+  "subscribeACL": "anonymous",
+  "publishACL": "anonymous"
+}
+
+channelsList.forEach(function(channel) {
+   var step = channels.create(channel, options);
+   responseObject["channelCreation_"+channel] = JSON.stringify(step)
+});
+
+/** Create the device **/
+var params = {
+        "id":"stmicro",
+        "password" : "stmicro",
+        "name" : "stmicro",
+        "groups": "scriptrio"
+};
+
+var step = devices.save(params);
+responseObject["createDevice_"+params.id] = JSON.stringify(step);
+
+/** Generate device token **/
+var step= devices.generateToken(params.id);
+responseObject["generateToken_"+params.id] = JSON.stringify(step);
+
+/** create devices digest channel **/
+var params = {
+    "name": "stmicroDigest",
+    "publishACL": ["group:scriptrio"],
+    "subscribeACL": ["group:scriptrio"]
+}
+var response = apsdb.callApi("SaveChannel", params, null);
+responseObject["channelCreation_"+params.name] = JSON.stringify(response);
+
+
+
+/** Create the device nebula**/
+var params = {
+        "id":"nebula20",
+        "password" : "demo",
+        "name" : "nebula20",
+        "groups": "scriptrio"
+};
+
+var step = devices.save(params);
+responseObject["createDevice_"+params.id] = JSON.stringify(step);
+
+/** Generate device token **/
+var step= devices.generateToken(params.id);
+responseObject["generateToken_"+params.id] = JSON.stringify(step);
+
+/** create devices digest channel **/
+var params = {
+    "name": "nebulaDigest",
+    "publishACL": ["group:scriptrio"],
+    "subscribeACL": ["group:scriptrio"]
+}
+var response = apsdb.callApi("SaveChannel", params, null);
+responseObject["channelCreation_"+params.name] = JSON.stringify(response);
+
+/** SETUP ADVANCED APP DEMO DEVICE PER GROUP  **/
+
+var devicesList = [
+    {
+        "id":"demo@acme.com",
+        "password" : "demo",
+        "name" : "demo@acme.com",
+        "groups": ["acme","editor"]
+	},
+    {
+        "id":"demo@fe.com",
+        "password" : "demo",
+        "name" : "demo@fe.com",
+        "groups": ["fe","editor"]
+    },
+    {
+        "id":"demo@scriptr.io",
+        "password" : "demo",
+        "name" : "demo@scriptr.io",
+        "groups": ["scriptrio","editor"]
+    }
+];
+
+devicesList.forEach(function(params) {
+   	var step= devices.save(params);
+    responseObject["deviceCreation_"+params.id] = JSON.stringify(step);
+
+    step= devices.generateToken(params.id);
+    responseObject["deviceToken_"+params.id] = JSON.stringify(step);
+
+});
+
+
+//SETUP THE connection to the REDIS instance to use
+var params = {
+    'name': 'redisFacade',
+    'protocol': 'redis',
+    'url': 'scriptr-prod-facade.uohkgr.0001.use1.cache.amazonaws.com'
+}
+var response = apsdb.callApi("SaveExternalEndpointConfiguration", params, null);
+responseObject["createRedisExternalEndPoint"] = JSON.stringify(response);
+
+
+//Setup the mqtt connection instance (ibm free tier)
+var params = {
+    'name': 'stmicro',
+    'protocol': 'mqtt',
+    'url':'quickstart.messaging.internetofthings.ibmcloud.com',
+    'topic': 'iot-2/type/stm32/id/stm32iot01a1/evt/+/fmt/json',
+    'clientId': 'a:quickstart:scriptr-demo'
+    
+}
+var response = apsdb.callApi("SaveExternalEndpointConfiguration", params, null);
+responseObject["createMqttExternalEndPoint"] = JSON.stringify(response);
+
+
+//Link the bridge to the channel for publishing messages
+//You need to activate the free trial bygoing to channels and clicking on bridges under any channel and clicking on free trial button
+var params = {
+    "channel": "stmicroDigest",
+    "externalEndpointConfiguration":"stmicro",
+    "auth_token": devices.get("stmicro").result["auth_token"]
+}
+var response = apsdb.callApi("AddBridge", params, null);
+responseObject["AddBridge"] = JSON.stringify(response);
+
+return responseObject;

@@ -1,0 +1,4 @@
+var groupManager = require("smartkitchens/entities/groupmanager");
+
+
+return groupManager.getAllGroups()

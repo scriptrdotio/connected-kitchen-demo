@@ -1,0 +1,60 @@
+<!-- begin tabs wrapper -->	
+<div class="col-xs-12 mt10">
+    <!-- begin tabs -->
+    <div class="box-shadow">
+        <!-- Nav tabs -->
+        <ul class="nav nav-pills nav-justified nav-styled" role="tablist">
+            <li role="presentation" class="active"><a ng-click="vm.showData(35)" data-toggle="tab"><span class="fa-2x">25% - 35% <i class="fa fa-battery-half" aria-hidden="true"></i></span></a></li>
+            <li role="presentation"><a ng-click="vm.showData(25)" data-toggle="tab"><span class="fa-2x">15% - 25% <i class="fa fa-battery-quarter" aria-hidden="true"></i></span></a></li>
+            <li role="presentation"><a ng-click="vm.showData(15)" data-toggle="tab"><span class="fa-2x">&lt; 15% <i class="fa fa-battery-empty" aria-hidden="true"></i></span></a></li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content bg-white">
+            <!-- begin fuel tab -->
+            <div ng-if="vm.tab == '35'">
+                <div class="padder10">
+                    <!-- begin chart -->
+                    <div class="col-xs-12 mb10 box-display mt15">
+                        <div class="box-shadow bg-white border">
+                            <scriptr-grid columns-definition='vm.batteryColDef' 
+                                          api='smartkitchens/api/reports/batteryLevel'
+                                          api-params="vm.batteryParams"
+                                          enable-delete-row='false'
+                                          row-model-type='virtual'
+                                          row-height='30'    
+                                          pagination="false"    
+                                          enable-add-row='false'
+                                          cell-editable='false'
+                                          suppress-filter="true"    
+                                          enable-client-side-filter='false'
+                                          enable-server-side-filter='false' 
+                                          enable-client-side-sorting='false'
+                                          enable-server-side-sorting='false'
+                                          row-model-selection='multiple'
+                                          pagination-page-size='50'
+                                          api-params="vm.batteryParams"
+                                          on-format-data="vm.batteryFormatData"    
+                                          transport='https'>
+                            </scriptr-grid> 
+                        </div>
+                    </div>
+                    <!-- end chart -->      
+                    <div class="clearfix"></div>     
+                </div>
+            </div>
+        </div>
+        <!-- end tab panes -->                             
+    </div>   
+    <!-- end tabs --->
+</div>
+<!-- end tabs wrapper -->		
+
+<!--div ng-include="'/resources/html/views/dashboard/support.html'"></div-->
+
+
+
+
+
+
+

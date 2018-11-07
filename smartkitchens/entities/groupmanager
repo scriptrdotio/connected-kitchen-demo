@@ -1,0 +1,41 @@
+var redis = require("redis").getInstance("redisFacade");
+var _= require("modules/underscore/underscore.js")._;
+var config = require("/smartkitchens/entities/config");
+
+var log = require("log");
+
+var accountKey = config.accountKey;
+
+var prefix = accountKey + "_group_";
+
+function saveGroupDevice(entry) {
+   var key = prefix + entry.id;
+   redis.sadd(key, entry.device);
+}
+
+function removeGroupDevice(entry) {
+   var key = prefix + entry.group;
+   return redis.srem(key, entry.id);
+}
+
+function getAllGroups(){
+    var keys = redis.keys(prefix+"*");
+    return _.map(keys, function(item){return  item.replace(prefix,"") });	
+}
+
+function deleteGroup(id){
+    var key = prefix + id;
+    return redis.del([key])
+}
+
+function getGroupDevices(id) {
+   var key = prefix + id;
+   return redis.smembers(key);
+}
+
+
+
+
+
+
+

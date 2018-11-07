@@ -1,0 +1,67 @@
+var document = require("document");
+//var wunderground = require("/modules/wunderground/simpleclient");
+var config = require("smartkitchens/entities/config");
+var redis = require("redis").getInstance("redisFacade");
+var _= require("modules/underscore/underscore.js")._;
+var groupManager = require("smartkitchens/entities/groupmanager")
+
+var log = require("log");
+
+
+var accountKey = config.accountKey;
+
+var event_prefix = accountKey + "_device_event_";
+var definition_prefix = accountKey + "_device_definition_";
+
+
+function deleteDevice(id) {
+    var eventKey = event_prefix + id;
+    var definitionKey = definition_prefix + id;
+    var deviceGroupKey = groupManager.prefix + getDeviceDefinition(id).group;
+    return redis.del([eventKey]) && redis.del([definitionKey]) && redis.srem(deviceGroupKey, id);
+}
+
+
+function getAllDevices() {
+    return redis.keys(event_prefix+"*");
+}
+
+function getAllDevicesDefintion() {
+    return redis.keys(definition_prefix+"*");
+}
+
+function getLatestDeviceEntry(id) {
+   var key = event_prefix + id;
+   var result = redis.lrange(key, 0, 0);
+   return _.map(result, function(item){return JSON.parse(item)})[0];
+}
+
+/**
+ * @function listHistory
+ * @param {String} id: the device's id
+ * @return {ArrayList} list of historical device data
+ */
+function getHistoricalDeviceEntries(id) {
+    var key = event_prefix + id;
+    var result = redis.lrange(key, 0, 14);
+	return _.map(result, function(item){return JSON.parse(item)});
+}
+
+function saveDeviceDefinition(entry) {
+   var key = definition_prefix + entry.id;
+   redis.set(key, JSON.stringify(entry));
+}
+
+function saveDeviceEvent(entry) {
+   var key = event_prefix + entry.id;
+   redis.lpush(key, JSON.stringify(entry));
+   //and then remove everything but the last 1000 keys
+   return redis.ltrim(key, 0, 1000);
+}
+
+function getDeviceDefinition(id) {
+   var key = definition_prefix + id;
+   var result = redis.get(key);
+   return (result) ? JSON.parse(result) : result;
+}
+

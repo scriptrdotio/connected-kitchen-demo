@@ -1,0 +1,113 @@
+/**
+ * This script is subscribed to the "requestChannel" to which the websocket node in the node-red sample application is publishing
+ * The aforementioned applicaton simply reads messages from the device's mqtt topic and sends them through WS
+ * This script is also subscribed to the "watson" channel that has a binding with the watson_nucleo endpoint. The latter is actually
+ * subscribed to the nucleo device's mqtt topic on waston iot, therefore, the current script can directly consume messages from the topic
+ * Once the current script receives the payload, it parses it and saves the data using an instance of DeviceManager
+ */ 
+//systemLogger.setLevel("OFF");
+var log = require("log"); log.setLevel("info");
+var devices = require("device");
+var _ = require("modules/underscore/underscore.js")._;
+var deviceManager = require("/smartkitchens/entities/devicemanager");
+var deviceProcessor = require("smartkitchens/entities/deviceprocessor");
+var deviceGenerator = require("smartkitchens/simulator/utils/dataGenerator");
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var groupManager = require("smartkitchens/entities/groupmanager");
+var config = require("smartkitchens/simulator/config");
+var utils = require("smartkitchens/entities/utils");
+
+
+var nebulaMapper = require("smartkitchens/entities/mapper/device/nebula");
+var stmicroMapper = require("smartkitchens/entities/mapper/device/stmicro");
+
+var data = {};
+var deviceId = null;
+var dataMapping = {};
+
+if(request.user.id == "stmicro") {
+    // read data from request rawBody or body property
+    var body = request.body ? request.body : request.rawBody;
+  	data = typeof(data) == "string" ? JSON.parse(body).d : body.d;
+    data = stmicroMapper.mapIt(data);
+    data.ovenSensor = "stmicro";
+    deviceId = "main"; // I think this should be passed by device
+  //  data["oven_door_state"] = generateDoorState();
+} if(request.user.id == "nebula20") {
+    data = request.parameters;
+    data = nebulaMapper.mapIt(data);
+    /**if(data.sp == "true") {
+        var updateTicketStatus = 
+    }**/
+    data.fridgeSensor = "nebula";
+    deviceId = "main"; // I think this should be passed by device
+  //  data["fridge_door_state"] = generateDoorState();
+}
+
+log.info("/smartkitchens/api/subscription/subscriber received the following payload \n" + JSON.stringify(data));
+
+ 
+try {
+    
+    var deviceGroups = devices.get(request.user.id).groups;
+    deviceGroups = (deviceGroups)? ((typeof deviceGroups == 'string') ?  [deviceGroups] : deviceGroups) :["scriptrio"];
+    
+    var entry = {};
+    entry["creationDate"] =  new Date().getTime();
+    
+    var deviceDefinition = deviceManager.getDeviceDefinition(deviceId);
+    log.info("Existing Device Definition: "+JSON.stringify(deviceDefinition))
+    if(deviceDefinition == null) {
+        entry = generateDeviceDefinitionData(deviceId,
+            {"latitude": 45.5602805, "longitude": -73.8521324},
+	        config.addresses[Math.floor(Math.random() * config.addresses.length)],
+      		config.types[3], 
+      		deviceGroups[0],
+            "Main", 
+            "simulator");
+            //Save device definition
+        	deviceManager.saveDeviceDefinition(entry);
+        	//Add device to group
+       	 	groupManager.saveGroupDevice({"id": entry.group, "device": entry.id});
+        	log.info("Create Device Definition: "+JSON.stringify(entry))
+    } else {
+        entry = _.extendOwn(entry, deviceDefinition);
+    }
+  
+    _.extendOwn(entry, data);
+
+     deviceProcessor.processEntry(entry);
+     log.info("TO PROCESS Entry: " + JSON.stringify(entry))
+    
+    return entry;
+    
+}catch(exception) {
+    log.info("Exception: "+JSON.stringify(exception))
+	return exception;    
+}
+
+
+function generateDeviceDefinitionData(id, kitchenGeoLoc, building, type, group, kitchen, source){
+	var point = kitchenGeoLoc;
+    point.id = point.name = id;
+    point.building = building;
+  	point.city = "Montreal";
+  	point.country = "Canada";
+  	point.type = type;
+    point.kitchen = kitchen;
+  	point.group = group;
+  	point.source = source;
+  	return point;
+}
+
+
+
+function generateDoorState(){
+    var doorStatus = ["OPENED", "CLOSED"];
+	//generate random lock state
+  	var state = doorStatus[Math.floor(Math.random()*doorStatus.length)];
+  	return state;
+}
+
+
+

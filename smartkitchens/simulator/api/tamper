@@ -1,0 +1,41 @@
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var log = require("log");
+log.setLevel("INFO");
+
+//get all parameters from http body or parameters
+var query = null;
+if(request.body != null){
+	query = request.body;
+}else{
+	if(request.parameters.body != null){
+	   	try{
+      		query = JSON.parse(request.parameters.body);  
+    	}catch(e){
+      		return "INVALID PARAMETER: invalid JSON";
+    	}
+    }
+}
+if(query == null){
+  	query = {};
+}
+var device = null;
+
+if(query.deviceId) {
+    device = deviceManager.getLatestDeviceEntry(query.deviceId);
+    if(device){
+        device.tampered = "true";
+      	device.tamperDate = new Date().toISOString().split(".")[0]+"+0000";
+        deviceManager.saveDevice(device);
+    } else {
+        console.log("Invalid deviceId, device not found.")
+        log.error("Invalid deviceId, device not found.");
+    }
+} else {
+    console.log("Invalid params; deviceId is required for a tamper simulation.");
+    log.error("Invalid params; deviceId is required for a tamper simulation.");
+}
+
+
+
+
+    

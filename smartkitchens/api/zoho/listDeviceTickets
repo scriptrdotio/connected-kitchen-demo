@@ -1,0 +1,38 @@
+var zohoLib =  require('smartkitchens/entities/zoho/zoho.js');
+var log = require("log");
+log.setLevel("INFO");
+var zoho = new zohoLib.zoho();
+var id = null;
+var params = {};
+if(request.body != null){
+	params = request.body;
+}else if(request.parameters.body){
+	params = request.parameters.body;
+} else {
+  params = request.parameters;
+}
+if(typeof params == 'string' && params != null){
+  	try{
+    	params = JSON.parse(params);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+
+if(params){
+ 	id = params['id'];
+ }
+
+var status = params.status;
+log.info("status: " +status);
+if(status){
+    var result = zoho.updateTicketStatus(params.caseId, status)
+    var data = JSON.parse(result).response
+    if(data.result.responsecode == "2002"){
+        data["status"] = "success"
+    }
+    return data 
+}else{
+    return zoho.getrecordsbysearch("deviceId", id)
+}
+

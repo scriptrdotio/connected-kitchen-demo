@@ -1,0 +1,36 @@
+var deviceManager = require("smartkitchens/entities/devicemanager")
+var devicePublisher = require("smartkitchens/entities/devicepublisher")
+
+var log = require("log");
+log.setLevel("INFO")
+
+
+var query = {};
+if(request.body != null){
+	query = request.body;
+}else if(request.parameters.body){
+	query = request.parameters.body;
+} else {
+  query = request.parameters;
+}
+
+if(typeof query == 'string'){
+  	try{
+    	query = JSON.parse(query);   
+    }catch(e){
+      	return "INVALID OR MISSING PARAMETER";
+    }
+}
+
+log.info("Device Id: "+ query.id)
+
+var deviceEntry = deviceManager.getLatestDeviceEntry(query.id);
+var deviceChannel = devicePublisher.getDevicePublishChannel(deviceEntry);
+log.info("Device channel: "+ deviceChannel)
+log.info("Device entry: "+ JSON.stringify(deviceEntry))
+if(deviceChannel) {
+    devicePublisher.publishDashboardData(deviceChannel, deviceEntry)
+    devicePublisher.publishMapData(deviceChannel, deviceEntry)
+}
+return {"live": deviceEntry, "historical": deviceManager.getHistoricalDeviceEntries(query.id) };
+//return {"live": deviceEntry};

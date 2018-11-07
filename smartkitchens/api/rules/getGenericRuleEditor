@@ -1,0 +1,27 @@
+var device = require("device");
+var config = require("smartkitchens/entities/config");
+var log = require("log");
+log.setLevel("INFO");
+var _ = require("modules/underscore/underscore.js")._;
+
+var availableRuleGroups = config.usersGroups;
+
+var accountKey = request.account.accountKey;
+var getDevice = device.get(request.user.id);
+
+if(getDevice.metadata.status == "success"){
+    var authToken = getDevice.result["auth_token"];
+    var userGroups = getDevice.result["groups"];
+      
+    if (userGroups == null) {
+        userGroups = ["scriptrio"];
+    } else if (typeof userGroups == 'string') {
+        userGroups = [ userGroups ];
+    }
+    
+    var ruleGroup = _.intersection(userGroups,  availableRuleGroups)[0];
+ 
+    
+    var editorUrl = "https://embedded.scriptr.io?auth_token=SkFCODUyQjlGODplZGl0b3I6QzZCRTc1RkI1Qzc5RDJEQkFERjgwRjhGRjM3MTRBQTY=&menu=0&tree=0&console=0&name=smartkitchens/entities/rules/"+ruleGroup;
+	return editorUrl
+}

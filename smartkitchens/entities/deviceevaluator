@@ -1,0 +1,215 @@
+var log = require("log");
+var document = require("document");
+var utils = require("smartkitchens/entities/utils");
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var config = require("smartkitchens/entities/config");
+var _= require("modules/underscore/underscore.js")._;
+var smsAlert = require("smartkitchens/entities/actions/smsOnAlert")
+var zohoLib =  require('smartkitchens/entities/zoho/zoho.js');
+log.setLevel("INFO");
+
+
+
+var emailAlert = require("smartkitchens/entities/actions/emailOnAlert");
+var redis = require("redis").getInstance("redisFacade");
+
+function evaluateDevice(entry, prevEntry) {
+		
+    log.info("Start Evaluate Fridge Open Status");
+    calculateFridgeOpenTime(entry);
+    log.info("End Evaluate Fridge Open Status");
+    log.info("Start Evaluate Oven Open Status");
+    calculateOvenOpenTime(entry);
+    log.info("End Evaluate Oven Open Status");
+   
+    var rules = require("smartkitchens/entities/rules/apply");
+    
+    var allGenericDecisions = rules.process(entry, request);
+    log.info("allGenericDecisions "+JSON.stringify(allGenericDecisions))
+    for(var i = 0; i< allGenericDecisions.length; i++){
+        emailAlert.execute(null, entry,allGenericDecisions[i].action);
+        if(allGenericDecisions[i].RECORD_ENTRY == "true"){
+            recordEvent = true;
+        }
+    }
+    
+    
+    log.info("rules process done on email, sms on unlock, tampering, temperature");
+    log.info("recordEvent: "+ recordEvent)
+    
+    var isSameEntry = function(prevEntry, entry) {
+        
+        if(!prevEntry) {
+            return false;
+        }
+        
+        var pre = JSON.parse(JSON.stringify(prevEntry))
+        var curr = JSON.parse(JSON.stringify(entry))
+        delete pre.by;
+        delete pre.tamperedDate;
+        delete pre.creationDate;
+        
+        delete curr.by;
+        delete curr.tamperedDate;
+        delete curr.creationDate;
+        log.info("isSame entry: "+ JSON.stringify(pre) == JSON.stringify(curr))
+        return JSON.stringify(pre) == JSON.stringify(curr);
+    }
+    
+   
+    if(!isSameEntry(prevEntry, entry) && recordEvent) {
+        log.info("Store Event: "+ recordEvent);
+        if(prevEntry)
+    		var completeEntry = _.extendOwn(prevEntry, entry);
+    	else 
+       	 	var completeEntry = entry
+        saveEventDocument(completeEntry)
+    }
+    
+    
+}
+
+
+function saveEventDocument(entry) {
+    //Report Device Entry 
+    entry["meta.types"] = {
+        "oven_temperature": "numeric",
+        "oven_humidity": "numeric",
+        "fridge_temperature": "numeric",
+        "fridge_humidity": "numeric",
+        "oven_power_consumption": "numeric",
+        "fridge_power_consumption": "numeric",
+        "deviceEventDate": "date"
+    }
+	//record event in db
+    var documentToSave =  JSON.parse(JSON.stringify(entry));
+    documentToSave["deviceEventDate"] =  new Date(documentToSave["creationDate"]).toISOString().split(".")[0]+"+0000"; //new Date(documentToSave["creationDate"])
+    delete documentToSave["creationDate"]; //Restricted
+    log.info("document entry: "+JSON.stringify(entry))
+    log.info("Save: "+JSON.stringify(document.save(documentToSave)));
+}
+
+
+var accountKey = config.accountKey;
+
+var fridge_open_prefix = accountKey + "_fridge_open_entry_timestamp_";
+var fridge_lock_prefix =  accountKey + "_fridge_open_entry_lock_";
+var fridge_locked_value_prefix = accountKey + "_fridge_open_entry_locked_";
+
+function calculateFridgeOpenTime(entry){
+        //Calculate entries timestamp to decided on publishing to client
+        var prevKey = fridge_open_prefix + entry.id;
+        var lockKey = fridge_lock_prefix + entry.id;
+        var lockValue = fridge_locked_value_prefix + entry.id;
+        //Lock for 3 seconds if no lock, return 
+        var lockEntry  = redis.set(lockKey, lockValue, "NX", "EX", 30);
+        if(lockEntry != null) {
+            var previousEntry = redis.get(prevKey);
+            log.info("Previous Entry: "+previousEntry)
+            if(!previousEntry && entry.fridge_door_state == "OPENED") {
+                log.info("Fridge just got opened."+ entry.id)
+                smsAlert.execute(request, entry, 'FRIDGE_OPENED_NOW')
+                var p = redis.set(prevKey, JSON.stringify(entry));
+                log.info("Set fridge open time entry track: "+JSON.stringify(entry));
+            } else {   
+                if(previousEntry && entry.fridge_door_state == "CLOSED") {
+                    log.info("Fridge was opened at: "+ new Date(JSON.parse(previousEntry).creationDate) + " & is closed now.");
+                	redis.del(prevKey);
+                    entry["fridge_opened_for"] = 0;
+                    log.info("Remove fridge open entry track after close");
+                } else {
+                    if(previousEntry && entry.fridge_door_state == "OPENED") {
+                        var openTime = ((entry.creationDate - JSON.parse(previousEntry)["creationDate"])/1000)/60;
+                        //Register the opened for
+                        entry["fridge_opened_for"] = openTime;
+                    	log.info("Fridge has been opened for: "+ openTime + " minutes");
+                    }
+                }
+            }
+            if(redis.get(lockKey) == lockValue) {
+                var releaseLock = redis.del(lockKey)
+                log.info("Release lock: "+releaseLock);
+
+            }
+        }
+}
+
+var oven_open_prefix = accountKey + "_oven_open_entry_timestamp_";
+var oven_lock_prefix =  accountKey + "_oven_open_entry_lock_";
+var oven_locked_value_prefix = accountKey + "_oven_open_entry_locked_";
+
+function calculateOvenOpenTime(entry){
+        //Calculate entries timestamp to decided on publishing to client
+        var prevKey = oven_open_prefix + entry.id;
+        var lockKey = oven_lock_prefix + entry.id;
+        var lockValue = oven_locked_value_prefix + entry.id;
+        //Lock for 3 seconds if no lock, return 
+        var lockEntry  = redis.set(lockKey, lockValue, "NX", "EX", 30);
+        if(lockEntry != null) {
+            var previousEntry = redis.get(prevKey);
+            log.info("Previous Entry: "+previousEntry)
+            if(!previousEntry && entry.oven_door_state == "OPENED") {
+                log.info("Oven just got opened."+ entry.id);
+                smsAlert.execute(request, entry, 'OVEN_OPENED_NOW');
+                var p = redis.set(prevKey, JSON.stringify(entry));
+                log.info("Set oven open time entry track: "+JSON.stringify(entry));
+            } else {   
+                if(previousEntry && entry.oven_door_state == "CLOSED") {
+                    log.info("Oven was opened at: "+ new Date(JSON.parse(previousEntry).creationDate) + " & is closed now.");
+                	redis.del(prevKey);
+                    entry["oven_opened_for"] = 0;
+                    log.info("Remove oven open entry track after close");
+                } else {
+                    if(previousEntry && entry.oven_door_state == "OPENED") {
+                        var openTime = ((entry.creationDate - JSON.parse(previousEntry)["creationDate"])/1000)/60;
+                        //Register the opened for
+                        entry["oven_opened_for"] = openTime;
+                    	log.info("Oven has been opened for: "+ openTime + " minutes");
+                    }
+                }
+            }
+            if(redis.get(lockKey) == lockValue) {
+                var releaseLock = redis.del(lockKey)
+                log.info("Release lock: "+releaseLock);
+
+            }
+        }
+}
+
+
+
+var fridge_ticket_prefix = accountKey + "_fridge_ticket_entry_timestamp_";
+var fridge_lock_prefix =  accountKey + "_fridge_ticket_entry_lock_";
+var fridge_locked_value_prefix = accountKey + "_fridge_ticket_entry_locked_";
+
+function allowCreateFridgeTicket(entry){
+    //Calculate entries timestamp
+    var prevKey = fridge_ticket_prefix + entry.id;
+    var lockKey = fridge_lock_prefix + entry.id;
+    var lockValue = fridge_locked_value_prefix + entry.id;
+    //Lock for 3 seconds if no lock, return 
+    var lockEntry  = redis.set(lockKey, lockValue, "NX", "EX", 30);
+    if(lockEntry != null) {
+        var previousEntry = redis.get(prevKey);
+        log.info("Fridge Maintenance Previous Entry: "+previousEntry);
+        if(!previousEntry) {
+            log.info("Create Fridge Maintenance ticket: "+JSON.stringify(entry));
+            var p = redis.set(prevKey, JSON.stringify(entry));
+            return true;
+        } else { 
+            log.info("Fridge Maintenance ticket already created: "+JSON.stringify(entry));
+            return false;
+        }
+        if(redis.get(lockKey) == lockValue) {
+            var releaseLock = redis.del(lockKey)
+            log.info("Release lock: "+releaseLock);
+
+        }
+    }
+}
+
+function clearFridgeTicketFlag(entry) {
+    //Calculate entries timestamp
+    var prevKey = fridge_ticket_prefix + entry.id;
+    return redis.del(prevKey)
+}

@@ -1,0 +1,34 @@
+var deviceManager = require("smartkitchens/entities/devicemanager")
+var groupManager = require("smartkitchens/entities/groupmanager");
+var utils = require("smartkitchens/entities/utils");
+var log = require("log");
+
+log.setLevel("INFO");
+
+var device = require("device");
+
+var getUser = device.get(request.user.id);
+var userGroups = getUser.result["groups"];
+var userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [userGroups] : userGroups) :["scriptrio"];
+
+
+var devices = getDevices(userGroups);
+
+result =  utils.format(devices);
+
+return result;
+
+
+function getDevices(userGroups) {
+  var documents = [];
+  for(var i = 0; i < userGroups.length; i++){
+      var devices = groupManager.getGroupDevices(userGroups[i]);
+      for(var j = 0; j < devices.length; j++) {
+          var entry = deviceManager.getLatestDeviceEntry(devices[j])
+          console.log(JSON.stringify(entry))
+          if(entry)
+              documents.push(entry)
+      }
+  }
+  return documents;
+}

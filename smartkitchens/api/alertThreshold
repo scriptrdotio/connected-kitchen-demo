@@ -1,0 +1,45 @@
+var document = require("document");
+var params = request.parameters.body ? JSON.parse(request.parameters.body) : request.parameters;
+
+var user = request.user.id;
+
+if(params.modelValue){
+    var fields = {
+        key: toHex("thresholdAlert"+user),
+        formType : "thresholdAlert",
+        delta: params.modelValue
+    }
+    document.save(fields);
+}else{
+    return getAlertThershold();
+}
+
+function getAlertThershold(){
+    var key = toHex("thresholdAlert"+user);
+    var queryParams = {};
+    queryParams["query"] =  'key = "'+ key +'"';
+    queryParams["fields"] = "delta";
+    var results =  document.query(queryParams);
+    if(results.metadata.status == "failure") {
+        return {status : "failure", errorDetails : "an error has occured when quering thresholdAlert doc key: " + key, errorMsg: results};
+    } else if(results.result.documents && results.result.documents.length == 1){
+        return results.result.documents[0].delta;
+    }else{
+        return null
+    }
+}
+
+
+function toHex(input){
+    try { hexcase } catch(e) { hexcase=0; }
+    var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+    var output = "";
+    var x;
+    for(var i = 0; i < input.length; i++)
+    {
+        x = input.charCodeAt(i);
+        output += hex_tab.charAt((x >>> 4) & 0x0F)
+            + hex_tab.charAt( x & 0x0F);
+    }
+    return output;
+}

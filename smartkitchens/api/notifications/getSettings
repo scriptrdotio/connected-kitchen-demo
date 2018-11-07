@@ -1,0 +1,24 @@
+var log = require("log");
+log.setLevel("INFO");
+
+var notificationManager = require("smartkitchens/entities/notificationmanager");
+var device = require("device");
+
+var getUser = device.get(request.user.id);
+var userGroups = "scriptrio"//getUser.result["groups"];
+var userGroups = (userGroups)? ((typeof userGroups == 'string') ?  [userGroups] : userGroups) :["scriptrio"];
+
+
+var emails = [];
+var mobiles = [];
+for(var i = 0; i < userGroups.length; i++){
+    var settings = notificationManager.getNotificationSettings(userGroups[i])
+    if(settings && settings.emails) 
+      emails = emails.concat(settings.emails);
+    if(settings && settings.mobiles) 
+       mobiles = mobiles.concat(settings.mobiles);
+         
+}
+
+return {emails: emails, mobiles: mobiles};
+

@@ -1,0 +1,71 @@
+//Get payload parameters
+var pl = null;
+var requestBody = request.body;
+if (!requestBody) {
+	pl = request.parameters.payload;
+	pl = JSON.parse(pl);
+} else {
+	pl = requestBody.payload;
+}
+
+//START TABLE DECISION CODE
+function execute(pl) {
+
+var decision = [];
+
+//PRESCRIPT START
+var log = require("log");
+log.setLevel("INFO");
+var moment = require("/modules/momentjs/moment.min.js").moment;
+var all = require("smartkitchens/entities/thresholds/all");
+
+//defaultMaintenanceDays: the number of days allowed before maintenance
+function dateChecker(last_maintenance, defaultMaintenanceDays) {
+  var currentDate = new Date().getTime();
+  var delta = currentDate - last_maintenance;
+  var duration = moment.duration(delta, 'milliseconds');
+  var deltaDays = duration.asDays();
+  var alertThresholdVal = all.getMaintenanceThreshold(request.user.id);
+  log.info("alertThresholdVal: " + alertThresholdVal)
+  if(alertThresholdVal == null || typeof alertThresholdVal == 'undefined') alertThresholdVal = defaultMaintenanceDays;
+  return !(deltaDays < defaultMaintenanceDays); //Get slider maintenance days, if not use defaultMaintenanceDays
+}
+	
+//PRESCRIPT END
+
+//RULES EVALUATION START
+if(typeof pl != "object") {
+  return[];
+} else { 
+	  if((pl != null && pl["fridge_last_maintenance"] != undefined && dateChecker(pl["fridge_last_maintenance"],0))){
+       decision.push({ "FRIDGE_MAINTENANCE_TICKET": "true" });
+	} 
+}
+//RULES EVALUATION END
+
+//POSTSCRIPT START
+//Variable "decision" is the object returned by the decision table execution.
+//Variable "decision" format is [{"action1": "value1", "action2":  "value2"}].
+console.log(JSON.stringify(decision))
+return decision;
+//POSTSCRIPT END
+
+}
+//Check if value is "in" or is "not in" array
+//return true or false
+function evalArrayOperation(value, operator,  array) {
+	if(operator == "in") {
+		return (array.indexOf(value)>-1);
+	} else {
+		return (array.indexOf(value) == -1) ;
+	} 
+}
+
+//isAny function, when condition expression is not important
+function isAny(param) {
+	return true;
+}
+
+//START_REST_CALL 
+return execute(pl);
+//END_REST_CALL

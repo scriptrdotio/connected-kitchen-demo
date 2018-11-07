@@ -1,0 +1,3 @@
+var simulatedDeviceManager = require("smartkitchens/simulator/entities/simulatedDeviceManager")
+
+return simulatedDeviceManager.deleteSimulatedDevices();

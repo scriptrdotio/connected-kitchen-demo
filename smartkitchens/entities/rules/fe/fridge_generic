@@ -1,0 +1,9 @@
+var device;
+var request;
+var alertType;
+
+function execute(device, request) {
+  if (device["fridge_door_state"] == 'OPENED' && device["fridge_opened_for"] > 1) {
+    alertType = 'FRIDGE_OPENED';
+  }
+  return require("smartkitchens/entities/actions/smsOnAlert").execute(request, device, alertType)}

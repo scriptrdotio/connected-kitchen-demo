@@ -1,0 +1,25 @@
+
+<div class="col-xs-12 mt10">
+    <div class="box-shadow bg-white">
+        <h5 class="box-title text-uppercase fntmontessart">Fridge Maintenance alert day range</h5>
+        <p>Set the number of days before next expected fridge maintenance. <br/>You will receive an alert for maintenance once the threshold is reached. <h7>Alerts will be addressed to the emails & mobiles defined on the notification settings.</p>
+
+        <div class="col-xs-12">
+            <scriptr-slider
+                            transport='https'
+                            min='2'
+                            floor='0'
+                            min-limit='null'
+                            max-limit='null'
+                            ceil='1000'
+                            step='1'
+                            vertical='false'
+                            show-ticks='false'
+                            http-method='GET'
+                            api='smartkitchens/api/thresholds/maintenance'
+                            ticks-array='[0,100,200,300,400,500,600,700,800,900,999]'
+                            show-selection-bar-from-value='0'
+                            on-format-data='vm.sliderFormatData4'
+                            ></scriptr-slider> </div>
+    </div>
+</div>

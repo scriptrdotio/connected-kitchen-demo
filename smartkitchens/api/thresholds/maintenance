@@ -1,0 +1,11 @@
+var all = require("smartkitchens/entities/thresholds/all");
+var params = request.parameters.body ? JSON.parse(request.parameters.body) : request.parameters;
+
+var user = request.user.id;
+
+if(params.modelValue){
+   all.setMaintenanceThreshold(user, params.modelValue);
+}else{
+    return all.getMaintenanceThreshold(user);
+}
+

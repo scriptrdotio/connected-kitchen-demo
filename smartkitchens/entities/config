@@ -1,0 +1,29 @@
+var expiry = 60;
+var twilio = {
+    "accountSID": "",
+    "authToken": "",
+    "from": "",
+    "to": ""
+}
+
+var email = {
+    "TO": "",
+    "FROM": "Connected Kitchen App",
+    "BODY": "Connected Kitchen Warning"
+}
+
+
+var zoho = {
+    TO_EMAIL: "",
+	FROM_NAME: "Connected Kitchen",
+    crmAuthToken: "",
+	supportAuthToken : "",
+    portal: "",
+	department: "";
+}
+
+
+var accountKey = request.account.accountKey
+
+
+var usersGroups=["scriptrio","acme", "fe"]

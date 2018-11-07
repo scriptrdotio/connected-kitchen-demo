@@ -1,0 +1,31 @@
+var notificationManager = require("smartkitchens/entities/notificationmanager");
+var smsmodule = require("modules/twilio/sms/smsclient");
+var templates = require("smartkitchens/entities/actions/templates");
+var config = require("smartkitchens/entities/config");
+var _ = require("modules/underscore/underscore.js")._;
+
+function execute(request, device, alertType){
+    var notifications_settings =  notificationManager.getDeviceNotificationSettings(device.id);
+    if(notifications_settings && notifications_settings["mobiles"]) {
+        var mobiles = notifications_settings["mobiles"];
+        for(var i = 0; i < mobiles.length; i++) {
+        	sendSmsOnOpen(request, device, mobiles[i], alertType);
+        }
+     } else {
+		sendSmsOnOpen(request, device, config.twilio.to, alertType)
+     }
+  return true;
+}
+
+function sendSmsOnOpen(request, device, mobile, alertType) {
+        try {
+          log.info("send sms");
+          //if(request.user.id != null) {
+              var smsClient = new smsmodule.TwilioSMS(config.twilio);
+             log.info(JSON.stringify({"number":  mobile, "message":   _.template(templates.getTemplate("sms", alertType))(device) }));
+              log.info(JSON.stringify(smsClient.send({"number":  mobile, "message":   _.template(templates.getTemplate("sms", alertType))(device) })));
+      // }
+        }catch(exception){
+          return exception;
+        }
+}

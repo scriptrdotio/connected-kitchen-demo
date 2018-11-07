@@ -1,0 +1,21 @@
+/**
+ * API used to update ticket status
+ *
+ */
+var zohoLib =  require('/modules/zoho/lib/zoho');
+var zoho = new zohoLib.zoho();
+var ticketId = null;
+var status = null;
+
+try{
+  var params =  JSON.parse(request.parameters['body']);
+  if(params){
+     ticketId = params["id"];
+     status = params["status"];
+  }
+}catch(e){
+  return e;
+}
+
+return zoho.updateTicketStatus(ticketId, status)
+

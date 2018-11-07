@@ -1,0 +1,84 @@
+var log = require("log");
+log.setLevel("INFO");
+
+var document = require("document");
+var deviceManager = require("smartkitchens/entities/devicemanager");
+var deviceEvaluator = require("smartkitchens/entities/deviceevaluator");
+var devicePublisher = require("smartkitchens/entities/devicepublisher");
+var config = require("smartkitchens/entities/config");
+var _ = require("modules/underscore/underscore.js")._;
+var zohoLib =  require('smartkitchens/entities/zoho/zoho.js');
+
+var accountKey = config.accountKey;
+
+var lock_prefix =  accountKey + "_device_process_lock_";
+var locked_prefix =  accountKey + "_device_process_locked_";
+var lockTimeout = 3; //In seconds
+var retryLockingDelay = 1;
+
+function processEntry(entry, forcePublish) {
+    
+    var previousEntry = deviceManager.getLatestDeviceEntry(entry.id);
+    log.info("Previous Entry: "+ JSON.stringify(previousEntry))
+    
+    deviceEvaluator.evaluateDevice(entry, previousEntry)
+    
+    if(previousEntry)
+    	var completeEntry = _.extendOwn(previousEntry, entry);
+    else 
+        var completeEntry = entry
+   
+    if(entry["scheduled_performance"] == "true" && entry["ticket_id"] && entry["ticket_id"] != "") {
+        
+        log.info("[deviceProcessor] Close zoho ticketing rule if schedule performance and ticket id available: "+JSON.stringify(entry))
+
+        var zoho = new zohoLib.zoho();
+        var updateTciketStatus = zoho.updateTicketStatus(entry["ticket_id"], "Closed");
+        log.info("[deviceProcessor] UPDATE TICKET STATUS: "+JSON.stringify(updateTciketStatus));
+        
+        var deviceDefinition = deviceManager.getDeviceDefinition(entry.id);
+        delete deviceDefinition["ticket_id"];
+        log.info("[deviceProcessor] UPDATE device definition: "+JSON.stringify(deviceDefinition));
+        deviceManager.saveDeviceDefinition(deviceDefinition);
+        //Need to remove from entry since we are mixin new on old
+        delete completeEntry["ticket_id"];
+    }
+    
+    
+        
+    deviceManager.saveDeviceEvent(completeEntry);
+    
+    devicePublisher.publishDevice(completeEntry, forcePublish);
+    
+    //IMPLEMENTATION OF DISTRIBUTED LOCKING. NOT USED AS WE DON'T HAVE SLEEP
+    /**var lockName = lock_prefix + entry.id;
+    var onLockAcquired = function(lockName, lockValue, entry) {
+        try{
+            
+        	deviceManager.saveDeviceEvent(entry);
+    		deviceEvaluator.evaluateDevice(entry, previousEntry)
+    		devicePublisher.publishDevice(entry);
+        } finally {
+            if(redis.get(lockName) == lockValue) {
+                redis.del(lockName);
+            }
+        }
+    }
+    log.info("Acquire Lock")
+    acquireLock(lockName, lockTimeout, retryLockingDelay, entry, onLockAcquired);
+    **/
+}
+
+
+function acquireLock(lockName, timeout, retryDelay, entry, onLockAquired) {
+	function retry() {
+        sleep(retryDelay);
+        acquireLock(client, lockName, timeout, retryDelay, onLockAquired);
+	}
+
+	var lockValue = (Date.now() + timeout + 1);
+    var lockEntry  = redis.set(lockName, lockValue, "NX", "EX", timeout);
+    if(lockEntry == null) return retry();
+    else onLockAquired(lockName, lockValue, entry);
+}
+
