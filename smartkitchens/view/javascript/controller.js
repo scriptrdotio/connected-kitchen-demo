@@ -150,7 +150,7 @@ myApp.controller('menuCtrl', function($scope, $timeout, httpClient, headerItemsJ
 
     vm.updateAllData = function(id){
         vm.vehicleId = id;
-        vm.getBatteryData({id: vm.vehicleId});
+       // vm.getBatteryData({id: vm.vehicleId});
         vm.gridParams = {id: vm.vehicleId};
         $scope.$broadcast('updateGridData', {});
     }
@@ -600,7 +600,3 @@ myApp.controller('temperatureRuleCtrl', function($scope, httpClient, headerItems
     
 
 });
-
-
-
-
